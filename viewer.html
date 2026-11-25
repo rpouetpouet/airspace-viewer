@@ -65,7 +65,11 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-const map = L.map('map').setView([43.63, 5.51], 8); // Centré Provence / Aix
+const map = L.map('map', {
+  zoomControl: false
+}).setView([43.63, 5.51], 8); // Centré Provence / Aix
+
+L.control.zoom({ position: 'bottomleft' }).addTo(map);
 
 document.getElementById('toggleControls').addEventListener('click', () => {
   const controls = document.getElementById('controls');
