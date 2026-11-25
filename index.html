@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Espaces Aériens France — À jour (Novembre 2026)</title>
+<style>
+  :root {
+    --bg: #0f1419;
+    --card: #1a2332;
+    --accent: #3b82f6;
+    --accent2: #10b981;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    padding: 1rem;
+  }
+  header {
+    text-align: center;
+    padding: 2rem 1rem;
+    background: linear-gradient(135deg, #1e3a8a, #0f172a);
+    border-radius: 16px;
+    margin-bottom: 2rem;
+    border: 1px solid #334155;
+  }
+  header h1 { font-size: 1.8rem; margin-bottom: 0.5rem; }
+  header p { color: var(--muted); font-size: 1.05rem; }
+  .badge {
+    display: inline-block;
+    background: var(--accent2);
+    color: #000;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-top: 0.75rem;
+  }
+  .container { max-width: 1100px; margin: 0 auto; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem; margin-bottom: 2rem; }
+  .card {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 1px solid #334155;
+    transition: transform 0.2s, border-color 0.2s;
+  }
+  .card:hover { transform: translateY(-2px); border-color: var(--accent); }
+  .card h2 { font-size: 1.25rem; margin-bottom: 0.75rem; color: #fff; }
+  .card h3 { font-size: 1.05rem; margin: 1rem 0 0.5rem; color: var(--accent); }
+  .card p, .card li { color: var(--muted); font-size: 0.95rem; }
+  .card ul { padding-left: 1.25rem; margin: 0.5rem 0; }
+  .card li { margin: 0.35rem 0; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .btn {
+    display: inline-block;
+    background: var(--accent);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-weight: 500;
+    margin: 0.4rem 0.4rem 0.4rem 0;
+    font-size: 0.9rem;
+  }
+  .btn:hover { background: #2563eb; text-decoration: none; }
+  .btn.green { background: var(--accent2); color: #000; }
+  .btn.green:hover { background: #059669; }
+  .warning { background: rgba(245, 158, 11, 0.15); border-left: 4px solid var(--warning); padding: 1rem; border-radius: 8px; margin: 1rem 0; }
+  .info { background: rgba(59, 130, 246, 0.1); border-left: 4px solid var(--accent); padding: 1rem; border-radius: 8px; margin: 1rem 0; }
+  footer { text-align: center; margin-top: 3rem; padding: 1.5rem; color: var(--muted); font-size: 0.85rem; border-top: 1px solid #334155; }
+  .status-ok { color: var(--accent2); font-weight: 600; }
+  .status-old { color: var(--warning); font-weight: 600; }
+  table { width: 100%; border-collapse: collapse; margin: 0.75rem 0; font-size: 0.9rem; }
+  th, td { text-align: left; padding: 0.5rem; border-bottom: 1px solid #334155; }
+  th { color: #fff; }
+  @media (max-width: 600px) {
+    header h1 { font-size: 1.5rem; }
+    .grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>Espaces Aériens France</h1>
+    <p>Ressources à jour pour Vol Libre, VFR et Planeur — Novembre 2026</p>
+    <div class="badge">AIRAC 2612 en vigueur à partir du 26 novembre 2026</div>
+  </header>
+
+  <div class="warning">
+    <strong>Note importante :</strong> Le site historique <a href="http://pascal.bazile.free.fr/" target="_blank">pascal.bazile.free.fr (POAFF)</a> n’a plus été mis à jour depuis le <strong>17 avril 2025</strong> (AIRAC 04/25). Les fichiers qui y sont proposés sont obsolètes. Utilisez les sources ci-dessous.
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>Fichiers OpenAir à jour</h2>
+      <p>Maintenus bénévolement à partir des publications officielles du SIA.</p>
+      <h3>planeur-net / airspace</h3>
+      <p class="status-ok">Dernière mise à jour : ~2 novembre 2026</p>
+      <ul>
+        <li>france.txt (OpenAir étendu + activations)</li>
+        <li>france_openair_standard.txt</li>
+        <li>Versions GeoJSON et CUB également disponibles</li>
+      </ul>
+      <a class="btn green" href="https://github.com/planeur-net/airspace" target="_blank">Repo GitHub</a>
+      <a class="btn" href="https://planeur-net.github.io/airspace/france.txt" target="_blank">Télécharger france.txt</a>
+      <a class="btn" href="https://planeur-net.github.io/airspace/france_openair_standard.txt" target="_blank">Version standard</a>
+      <a class="btn green" href="viewer.html">Visualisateur carte</a>
+    </div>
+
+    <div class="card">
+      <h2>Données officielles SIA</h2>
+      <p>Exports XML AIXM 4.5 et XML-SIA — gratuits sous licence.</p>
+      <h3>Service de l’Information Aéronautique</h3>
+      <p>AIRAC 12/26 : en vigueur du <strong>26/11/2026 au 23/12/2026</strong></p>
+      <ul>
+        <li>AIXM4.5_all_FR_OM_*.xml</li>
+        <li>XML_SIA_*.xml</li>
+      </ul>
+      <a class="btn green" href="https://www.sia.aviation-civile.gouv.fr/produits-numeriques-en-libre-disposition/les-bases-de-donnees-sia.html" target="_blank">Télécharger données XML</a>
+      <a class="btn" href="https://www.sia.aviation-civile.gouv.fr/" target="_blank">Site SIA</a>
+    </div>
+
+    <div class="card">
+      <h2>Cartes & visualiseurs</h2>
+      <h3>SUP AIP interactif</h3>
+      <p>ZRT, ZDT, NOTAM, ZSM, AZBA — mis à jour en continu.</p>
+      <a class="btn green" href="https://supaip.fr/" target="_blank">supaip.fr</a>
+      <h3>OpenAIP</h3>
+      <p>Données mondiales (qualité variable pour la France).</p>
+      <a class="btn" href="https://www.openaip.net/" target="_blank">openaip.net</a>
+      <h3>eAIP France</h3>
+      <a class="btn" href="https://www.sia.aviation-civile.gouv.fr/" target="_blank">eAIP / VAC</a>
+    </div>
+
+    <div class="card">
+      <h2>Outils recommandés</h2>
+      <ul>
+        <li><strong>XCSoar</strong> / LK8000 — supportent les fichiers planeur-net</li>
+        <li><strong>SeeYou</strong> / Naviter</li>
+        <li><strong>XCTrack</strong> / FlySkyHy / Syride</li>
+        <li>SkyDemon, ForeFlight, etc. (abonnements)</li>
+      </ul>
+      <p style="margin-top:1rem;">Pour le vol libre, préférez les fichiers filtrés « FreeFlight » ou ceux de planeur-net avec ZSM.</p>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:2rem;">
+    <h2>Cycles AIRAC 2026 (dates d’entrée en vigueur)</h2>
+    <table>
+      <thead><tr><th>Cycle</th><th>Date d’effet</th><th>Statut (au 25/11/2026)</th></tr></thead>
+      <tbody>
+        <tr><td>AIRAC 11/26</td><td>29 octobre 2026</td><td>En cours (jusqu’au 25/11)</td></tr>
+        <tr><td>AIRAC 12/26</td><td>26 novembre 2026</td><td class="status-ok">Nouveau — disponible</td></tr>
+        <tr><td>AIRAC 01/27</td><td>24 décembre 2026</td><td>—</td></tr>
+      </tbody>
+    </table>
+    <div class="info">
+      Les fichiers OpenAir de planeur-net sont actualisés régulièrement (souvent tous les 15 jours). Vérifiez toujours la date du fichier et croisez avec les NOTAM / SUP AIP avant le vol.
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>À propos de cette page</h2>
+    <p>Alternative moderne et à jour du site historique de Pascal Bazile (POAFF — Paragliding OpenAir French Files). Les données officielles évoluent à chaque cycle AIRAC (tous les 28 jours). Cette page pointe vers les sources actives en novembre 2026.</p>
+    <p style="margin-top:0.75rem;"><strong>Rappel :</strong> Aucun fichier n’est parfait. La responsabilité du pilote reste entière. Consultez toujours les NOTAM, SUP AIP et l’eAIP officiels avant tout vol.</p>
+  </div>
+
+  <footer>
+    Page générée le 25 novembre 2026 · Sources : SIA, planeur-net, SUPAIP, OpenAIP<br>
+    Usage personnel / communautaire — données officielles sous licence SIA.
+  </footer>
+</div>
+</body>
+</html>
