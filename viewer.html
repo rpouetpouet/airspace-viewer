@@ -142,6 +142,89 @@ function applyFilters() {
   document.getElementById('altInfo').textContent = count + ' zones visibles';
 }
 
+// Point-in-polygon (ray casting)
+function pointInPolygon(point, vs) {
+  const x = point[0], y = point[1];
+  let inside = false;
+  for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+    const xi = vs[i][0], yi = vs[i][1];
+    const xj = vs[j][0], yj = vs[j][1];
+    const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+function isPointInFeature(latlng, feature) {
+  const coords = feature.geometry.coordinates;
+  const point = [latlng.lng, latlng.lat];
+  if (feature.geometry.type === 'Polygon') {
+    // Check outer ring
+    if (!pointInPolygon(point, coords[0])) return false;
+    // Check holes
+    for (let i = 1; i < coords.length; i++) {
+      if (pointInPolygon(point, coords[i])) return false;
+    }
+    return true;
+  }
+  return false;
+}
+
+// Map click: show all overlapping airspaces
+map.on('click', function(e) {
+  const hits = [];
+  allLayers.forEach(item => {
+    if (!map.hasLayer(item.layer)) return; // only visible ones
+    const layer = item.layer;
+    // Get the original feature from the layer
+    layer.eachLayer(l => {
+      if (l.feature && isPointInFeature(e.latlng, l.feature)) {
+        hits.push(item);
+      }
+    });
+  });
+
+  if (hits.length === 0) return;
+
+  // Sort by lower altitude
+  hits.sort((a, b) => (a.altRange.lower || 0) - (b.altRange.lower || 0));
+
+  let html = `<div style="max-height:300px;overflow-y:auto;font-size:13px;">`;
+  html += `<b>${hits.length} zone${hits.length > 1 ? 's' : ''} à ce point</b><hr style="margin:6px 0;">`;
+
+  hits.forEach(item => {
+    const p = item.props;
+    const name = p.name || 'Zone';
+    const cls = p.class || '?';
+    const typ = p.type || '';
+    function formatCeiling(ceil) {
+      if (!ceil) return '?';
+      const val = ceil.value;
+      const unit = ceil.unit || 'FT';
+      const ref = ceil.referenceDatum || '';
+      if (val === 0 && ref === 'GND') return 'GND';
+      if (ref === 'FL' || unit === 'FL') return 'FL' + val;
+      return val + ' ' + unit + (ref ? ' ' + ref : '');
+    }
+    const lower = formatCeiling(p.lowerCeiling);
+    const upper = formatCeiling(p.upperCeiling);
+    let freq = '';
+    if (p.frequency && p.frequency.value) {
+      freq = ` · ${p.frequency.value}`;
+    }
+    html += `<div style="margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #eee;">
+      <b>${name}</b><br>
+      ${cls}${typ ? ' (' + typ + ')' : ''} · ${lower} → ${upper}${freq}
+    </div>`;
+  });
+  html += `</div>`;
+
+  L.popup()
+    .setLatLng(e.latlng)
+    .setContent(html)
+    .openOn(map);
+});
+
 document.getElementById('altMin').addEventListener('input', applyFilters);
 document.getElementById('altMax').addEventListener('input', applyFilters);
 
@@ -163,37 +246,8 @@ fetch('https://planeur-net.github.io/airspace/france.geojson')
           weight: 1.5,
           fillColor: color,
           fillOpacity: 0.25
-        },
-        onEachFeature: (f, l) => {
-          const p = f.properties || {};
-          const name = p.name || 'Zone';
-          const cls = p.class || '?';
-          const typ = p.type || '';
-
-          // Format ceilings
-          function formatCeiling(ceil) {
-            if (!ceil) return '?';
-            const val = ceil.value;
-            const unit = ceil.unit || 'FT';
-            const ref = ceil.referenceDatum || '';
-            if (val === 0 && ref === 'GND') return 'GND';
-            if (ref === 'FL' || unit === 'FL') return 'FL' + val;
-            return val + ' ' + unit + (ref ? ' ' + ref : '');
-          }
-
-          const lower = formatCeiling(p.lowerCeiling);
-          const upper = formatCeiling(p.upperCeiling);
-
-          let freq = '';
-          if (p.frequency && p.frequency.value) {
-            freq = `<br>Fréquence: ${p.frequency.value} ${p.frequency.name || ''}`;
-          }
-
-          l.bindPopup(`<b>${name}</b><br>
-            Classe: ${cls}${typ ? ' (' + typ + ')' : ''}<br>
-            Plancher: ${lower}<br>
-            Plafond: ${upper}${freq}`);
         }
+        // Popups handled by map click for stacked sectors
       });
       allLayers.push({ layer, props, color, altRange: getAltitudeRange(props) });
       layer.addTo(layerGroup);
