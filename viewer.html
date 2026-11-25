@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Visualisateur Espaces Aériens France</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+  html, body, #map { height: 100%; margin: 0; padding: 0; }
+  body { font-family: system-ui, sans-serif; }
+  #controls {
+    position: absolute; top: 10px; left: 10px; z-index: 1000;
+    background: white; padding: 12px; border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2); max-width: 280px;
+    font-size: 14px;
+  }
+  #controls h3 { margin: 0 0 8px 0; font-size: 16px; }
+  #controls label { display: block; margin: 4px 0; cursor: pointer; }
+  #status { position: absolute; bottom: 10px; left: 10px; z-index: 1000;
+    background: rgba(0,0,0,0.7); color: white; padding: 6px 12px;
+    border-radius: 6px; font-size: 13px; }
+  .legend { margin-top: 10px; font-size: 12px; }
+  .legend span { display: inline-block; width: 14px; height: 14px; margin-right: 4px; border: 1px solid #333; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div id="controls">
+  <h3>Espaces aériens FR</h3>
+  <p style="margin:0 0 8px;color:#555;font-size:12px;">Source: planeur-net (MAJ ~18 nov 2026)</p>
+  <label><input type="checkbox" id="showAll" checked> Tout afficher</label>
+  <div id="filters"></div>
+  <div style="margin-top:12px; border-top:1px solid #ddd; padding-top:8px;">
+    <strong>Tranche d'altitude (ft)</strong>
+    <div style="margin:8px 0;">
+      <label>Plancher min : <span id="altMinVal">0</span> ft</label><br>
+      <input type="range" id="altMin" min="0" max="20000" value="0" step="500" style="width:100%;">
+    </div>
+    <div style="margin:8px 0;">
+      <label>Plafond max : <span id="altMaxVal">19500</span> ft</label><br>
+      <input type="range" id="altMax" min="0" max="20000" value="19500" step="500" style="width:100%;">
+    </div>
+    <span id="altInfo" style="font-size:11px; color:#666;"></span>
+  </div>
+  <div class="legend">
+    <div><span style="background:#ef4444"></span> Restreint / Dangereux</div>
+    <div><span style="background:#f59e0b"></span> CTR / TMA / Classe D</div>
+    <div><span style="background:#3b82f6"></span> Autres</div>
+    <div><span style="background:#10b981"></span> ZSM / Protection</div>
+  </div>
+  <p style="margin-top:10px;font-size:12px;"><a href="https://supaip.fr/" target="_blank">→ SUPAIP.fr (zones temporaires)</a></p>
+</div>
+<div id="status">Chargement des espaces aériens…</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const map = L.map('map').setView([43.63, 5.51], 8); // Centré Provence / Aix
+
+const baseLayers = {
+  "Esri Topo": L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Tiles © Esri · Données: planeur-net/airspace',
+    maxZoom: 19
+  }),
+  "Esri Imagery": L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Tiles © Esri · Données: planeur-net/airspace',
+    maxZoom: 19
+  }),
+  "OpenTopoMap": L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap · © OpenTopoMap · Données: planeur-net/airspace',
+    maxZoom: 17
+  }),
+  "OSM FR": L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap France · Données: planeur-net/airspace',
+    maxZoom: 20
+  })
+};
+
+baseLayers["Esri Topo"].addTo(map);
+L.control.layers(baseLayers, null, { position: 'topright' }).addTo(map);
+
+// Couleurs selon classe / type
+function getColor(props) {
+  const name = (props.name || '').toUpperCase();
+  const cls = (props.class || '').toUpperCase();
+  const typ = (props.type || '').toUpperCase();
+  if (name.includes('ZSM') || name.includes('PROTECTION') || name.includes('RAPACE')) return '#10b981';
+  if (typ === 'R' || typ === 'P' || typ === 'Q' || cls.includes('R') || name.includes('RESTRICT') || name.includes('DANGER')) return '#ef4444';
+  if (name.includes('CTR') || name.includes('TMA') || cls.includes('D') || typ === 'CTR' || typ === 'TMA') return '#f59e0b';
+  return '#3b82f6';
+}
+
+let allLayers = [];
+let layerGroup = L.layerGroup().addTo(map);
+
+// Convert ceiling to feet AMSL (approx)
+function ceilingToFeet(ceil) {
+  if (!ceil) return 0;
+  const val = ceil.value || 0;
+  const unit = (ceil.unit || 'FT').toUpperCase();
+  const ref = (ceil.referenceDatum || '').toUpperCase();
+
+  let feet = val;
+  if (unit === 'M' || unit === 'METER') feet = val * 3.28084;
+  if (ref === 'FL' || unit === 'FL') feet = val * 100;
+  if (ref === 'GND' && val === 0) feet = 0;
+
+  return feet;
+}
+
+function getAltitudeRange(props) {
+  const lowerFt = ceilingToFeet(props.lowerCeiling);
+  const upperFt = ceilingToFeet(props.upperCeiling);
+  return { lower: lowerFt, upper: upperFt };
+}
+
+function applyFilters() {
+  layerGroup.clearLayers();
+  const activeTypes = new Set([...document.querySelectorAll('.filter:checked')].map(cb => cb.dataset.type));
+  const altMin = parseInt(document.getElementById('altMin').value) || 0;
+  const altMax = parseInt(document.getElementById('altMax').value) || 20000;
+  document.getElementById('altMinVal').textContent = altMin;
+  document.getElementById('altMaxVal').textContent = altMax;
+  let count = 0;
+
+  allLayers.forEach(item => {
+    const n = (item.props.name || '').toUpperCase();
+    let type = 'Autres';
+    if (n.includes('ZSM')) type = 'ZSM';
+    else if (n.includes('CTR') || n.includes('TMA')) type = 'CTR/TMA';
+    else if (n.includes('R') || (item.props.class||'').includes('R')) type = 'Restreint';
+
+    if (!activeTypes.has(type)) return;
+
+    const range = item.altRange || getAltitudeRange(item.props);
+    // Show if airspace intersects the selected altitude slice
+    if (range.upper >= altMin && range.lower <= altMax) {
+      item.layer.addTo(layerGroup);
+      count++;
+    }
+  });
+
+  document.getElementById('altInfo').textContent = count + ' zones visibles';
+}
+
+document.getElementById('altMin').addEventListener('input', applyFilters);
+document.getElementById('altMax').addEventListener('input', applyFilters);
+
+fetch('https://planeur-net.github.io/airspace/france.geojson')
+  .then(r => {
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  })
+  .then(geojson => {
+    document.getElementById('status').textContent = `${geojson.features.length} zones chargées`;
+    setTimeout(() => document.getElementById('status').style.display = 'none', 4000);
+
+    geojson.features.forEach(feature => {
+      const props = feature.properties || {};
+      const color = getColor(props);
+      const layer = L.geoJSON(feature, {
+        style: {
+          color: color,
+          weight: 1.5,
+          fillColor: color,
+          fillOpacity: 0.25
+        },
+        onEachFeature: (f, l) => {
+          const p = f.properties || {};
+          const name = p.name || 'Zone';
+          const cls = p.class || '?';
+          const typ = p.type || '';
+
+          // Format ceilings
+          function formatCeiling(ceil) {
+            if (!ceil) return '?';
+            const val = ceil.value;
+            const unit = ceil.unit || 'FT';
+            const ref = ceil.referenceDatum || '';
+            if (val === 0 && ref === 'GND') return 'GND';
+            if (ref === 'FL' || unit === 'FL') return 'FL' + val;
+            return val + ' ' + unit + (ref ? ' ' + ref : '');
+          }
+
+          const lower = formatCeiling(p.lowerCeiling);
+          const upper = formatCeiling(p.upperCeiling);
+
+          let freq = '';
+          if (p.frequency && p.frequency.value) {
+            freq = `<br>Fréquence: ${p.frequency.value} ${p.frequency.name || ''}`;
+          }
+
+          l.bindPopup(`<b>${name}</b><br>
+            Classe: ${cls}${typ ? ' (' + typ + ')' : ''}<br>
+            Plancher: ${lower}<br>
+            Plafond: ${upper}${freq}`);
+        }
+      });
+      allLayers.push({ layer, props, color, altRange: getAltitudeRange(props) });
+      layer.addTo(layerGroup);
+    });
+
+    // Simple filter by type (rough)
+    const types = new Set();
+    allLayers.forEach(item => {
+      const n = (item.props.name || '').toUpperCase();
+      if (n.includes('ZSM')) types.add('ZSM');
+      else if (n.includes('CTR') || n.includes('TMA')) types.add('CTR/TMA');
+      else if (n.includes('R') || (item.props.class||'').includes('R')) types.add('Restreint');
+      else types.add('Autres');
+    });
+
+    const filtersDiv = document.getElementById('filters');
+    types.forEach(type => {
+      const id = 'f_' + type.replace(/[^a-z0-9]/gi, '');
+      filtersDiv.innerHTML += `<label><input type="checkbox" class="filter" data-type="${type}" checked> ${type}</label>`;
+    });
+
+    document.querySelectorAll('.filter').forEach(cb => {
+      cb.addEventListener('change', applyFilters);
+    });
+    document.getElementById('showAll').addEventListener('change', (e) => {
+      document.querySelectorAll('.filter').forEach(cb => cb.checked = e.target.checked);
+      applyFilters();
+    });
+
+    // Initial altitude filter
+    applyFilters();
+  })
+  .catch(err => {
+    document.getElementById('status').textContent = 'Erreur chargement: ' + err.message;
+    document.getElementById('status').style.background = '#ef4444';
+  });
+</script>
+</body>
+</html>
