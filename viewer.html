@@ -214,7 +214,9 @@ map.on('click', function(e) {
     }
     html += `<div style="margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #eee;">
       <b>${name}</b><br>
-      ${cls}${typ ? ' (' + typ + ')' : ''} · ${lower} → ${upper}${freq}
+      ${cls}${typ ? ' (' + typ + ')' : ''}<br>
+      Plafond: ${upper}<br>
+      Plancher: ${lower}${freq}
     </div>`;
   });
   html += `</div>`;
